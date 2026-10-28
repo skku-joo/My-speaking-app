@@ -1,0 +1,6 @@
+{
+  "name": "HelloMe! - Introducing myself",
+  "description": "A friendly English speaking practice app for elementary students to practice introducing themselves with AI feedback.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

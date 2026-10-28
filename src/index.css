@@ -1,0 +1,12 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    font-family: 'Nunito', 'Noto Sans KR', sans-serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+.font-fun {
+  font-family: 'Fredoka', 'Nunito', 'Noto Sans KR', sans-serif;
+}
