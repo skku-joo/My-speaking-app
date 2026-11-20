@@ -11,11 +11,13 @@ import {
   X,
   VolumeX,
   Square,
+  Headphones,
 } from 'lucide-react';
 import { DIALOGUE_DATA, DialogueTurn } from '../data/dialogue';
 import { CharacterAvatar, CharacterMood } from './CharacterAvatar';
 import { speechService, isSpeechRecognitionSupported } from '../utils/speech';
 import { compareSentences, ComparisonResult } from '../utils/comparator';
+import { useActivity } from '../contexts/ActivityContext';
 
 export interface TurnRecord {
   turnId: number;
@@ -40,6 +42,14 @@ export const PracticeScreen: React.FC<PracticeScreenProps> = ({
   onFinishPractice,
   onExit,
 }) => {
+  const {
+    listenCount,
+    shadowingCount,
+    recordListen,
+    recordShadowing,
+    updateCompletedTurns,
+    saveCurrentSession,
+  } = useActivity();
   const [currentTurnIndex, setCurrentTurnIndex] = useState(0);
   const currentTurn: DialogueTurn = DIALOGUE_DATA[currentTurnIndex];
 
@@ -148,6 +158,7 @@ export const PracticeScreen: React.FC<PracticeScreenProps> = ({
       setActiveSpeechType(null);
       return;
     }
+    recordListen();
     setActiveSpeechType('question');
     setCharacterMood('talking');
     speechService.speak(currentTurn.partnerQuestion, 0.9, () => {
@@ -162,6 +173,7 @@ export const PracticeScreen: React.FC<PracticeScreenProps> = ({
       setActiveSpeechType(null);
       return;
     }
+    recordListen();
     setActiveSpeechType('normal');
     speechService.speak(currentTurn.studentTargetSentence, 0.9, () => {
       setActiveSpeechType(null);
@@ -174,6 +186,7 @@ export const PracticeScreen: React.FC<PracticeScreenProps> = ({
       setActiveSpeechType(null);
       return;
     }
+    recordListen();
     setActiveSpeechType('slow');
     speechService.speak(currentTurn.studentTargetSentence, 0.7, () => {
       setActiveSpeechType(null);
@@ -298,6 +311,9 @@ export const PracticeScreen: React.FC<PracticeScreenProps> = ({
       setCanProceed(true);
       return;
     }
+
+    // Count completed shadowing attempt
+    recordShadowing();
 
     // Compare sentences word-by-word
     const comp = compareSentences(currentTurn.studentTargetSentence, spoken, currentTurn.keyWords);
@@ -428,10 +444,14 @@ export const PracticeScreen: React.FC<PracticeScreenProps> = ({
     const newRecords = [...records, turnRecord];
     setRecords(newRecords);
 
+    const completedNow = newRecords.filter((r) => r.isCompleted && !r.isSkipped).length;
+    updateCompletedTurns(completedNow);
+
     if (currentTurnIndex < DIALOGUE_DATA.length - 1) {
       setCurrentTurnIndex(currentTurnIndex + 1);
     } else {
-      // Finished all 5 turns
+      // Finished all 5 turns - persist final session activity log
+      void saveCurrentSession(completedNow);
       onFinishPractice(newRecords);
     }
   };
@@ -466,6 +486,17 @@ export const PracticeScreen: React.FC<PracticeScreenProps> = ({
                 }`}
               />
             ))}
+          </div>
+          {/* Live Activity Counters */}
+          <div className="flex items-center gap-2.5 mt-1.5 text-[11px] font-bold text-slate-600">
+            <span className="inline-flex items-center gap-1 bg-amber-100/80 text-amber-900 px-2 py-0.5 rounded-full">
+              <Headphones className="w-3 h-3 text-amber-600" />
+              듣기 {listenCount}회
+            </span>
+            <span className="inline-flex items-center gap-1 bg-orange-100/80 text-orange-900 px-2 py-0.5 rounded-full">
+              <Mic className="w-3 h-3 text-orange-600" />
+              쉐도잉 {shadowingCount}회
+            </span>
           </div>
         </div>
 

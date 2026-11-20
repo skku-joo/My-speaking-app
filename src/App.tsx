@@ -1,18 +1,56 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StartScreen } from './components/StartScreen';
 import { PracticeScreen, TurnRecord } from './components/PracticeScreen';
 import { ResultScreen } from './components/ResultScreen';
 import { ReviewModal } from './components/ReviewModal';
+import { AuthPage } from './components/AuthPage';
+import { ActivitySummaryPage } from './components/ActivitySummaryPage';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ActivityProvider, useActivity } from './contexts/ActivityContext';
 import { CheckSquare, Sparkles, X } from 'lucide-react';
 
-export default function App() {
-  const [currentScreen, setCurrentScreen] = useState<'start' | 'practice' | 'result'>('start');
+function AppContent() {
+  const { isAuthenticated } = useAuth();
+  const { resetSession } = useActivity();
+  const [currentScreen, setCurrentScreen] = useState<'start' | 'practice' | 'result' | 'auth' | 'summary'>(() => {
+    if (
+      typeof window !== 'undefined' &&
+      window.location.pathname.startsWith('/auth') &&
+      !window.location.pathname.startsWith('/auth/callback')
+    ) {
+      return 'auth';
+    }
+    return 'start';
+  });
   const [isReviewOpen, setIsReviewOpen] = useState(false);
   const [practiceRecords, setPracticeRecords] = useState<TurnRecord[]>([]);
   const [showChecklist, setShowChecklist] = useState(false);
 
+  // Redirect to main page when login completes
+  useEffect(() => {
+    if (isAuthenticated && currentScreen === 'auth') {
+      if (typeof window !== 'undefined' && window.location.pathname !== '/') {
+        window.history.replaceState({}, '', '/');
+      }
+      setCurrentScreen('start');
+    }
+  }, [isAuthenticated, currentScreen]);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      if (window.location.pathname.startsWith('/auth')) {
+        setCurrentScreen('auth');
+      } else {
+        setCurrentScreen('start');
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
   const handleStartPractice = () => {
     setIsReviewOpen(false);
+    resetSession();
     setCurrentScreen('practice');
   };
 
@@ -23,11 +61,15 @@ export default function App() {
 
   const handleRestartPractice = () => {
     setPracticeRecords([]);
+    resetSession();
     setCurrentScreen('practice');
   };
 
   const handleGoHome = () => {
     setPracticeRecords([]);
+    if (typeof window !== 'undefined' && window.location.pathname.startsWith('/auth')) {
+      window.history.pushState({}, '', '/');
+    }
     setCurrentScreen('start');
   };
 
@@ -39,6 +81,18 @@ export default function App() {
           <StartScreen
             onStartPractice={handleStartPractice}
             onOpenReview={() => setIsReviewOpen(true)}
+            onOpenSummary={() => setCurrentScreen('summary')}
+          />
+        )}
+
+        {currentScreen === 'auth' && (
+          <AuthPage onBackToHome={handleGoHome} />
+        )}
+
+        {currentScreen === 'summary' && (
+          <ActivitySummaryPage
+            onBackToHome={handleGoHome}
+            onStartPractice={handleStartPractice}
           />
         )}
 
@@ -54,6 +108,7 @@ export default function App() {
             records={practiceRecords}
             onRestart={handleRestartPractice}
             onHome={handleGoHome}
+            onOpenSummary={() => setCurrentScreen('summary')}
           />
         )}
 
@@ -168,5 +223,15 @@ export default function App() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <ActivityProvider>
+        <AppContent />
+      </ActivityProvider>
+    </AuthProvider>
   );
 }

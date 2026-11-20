@@ -1,25 +1,37 @@
 import React, { useState, useEffect } from 'react';
-import { Play, BookOpen, ShieldCheck, AlertTriangle, Sparkles, Volume2 } from 'lucide-react';
+import { Play, BookOpen, ShieldCheck, AlertTriangle, Sparkles, Volume2, LogIn, BarChart3 } from 'lucide-react';
 import { CharacterAvatar } from './CharacterAvatar';
 import { isInAppBrowser, isSpeechRecognitionSupported, speechService } from '../utils/speech';
+import { useAuth } from '../contexts/AuthContext';
+import { LoginModal } from './LoginModal';
+import { UserProfilePopover } from './UserProfilePopover';
 
 interface StartScreenProps {
   onStartPractice: () => void;
   onOpenReview: () => void;
+  onOpenSummary: () => void;
 }
 
 export const StartScreen: React.FC<StartScreenProps> = ({
   onStartPractice,
   onOpenReview,
+  onOpenSummary,
 }) => {
+  const { isAuthenticated, loading: authLoading } = useAuth();
   const [inApp, setInApp] = useState(false);
   const [speechSupported, setSpeechSupported] = useState(true);
   const [hasPlayedIntro, setHasPlayedIntro] = useState(false);
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
 
   useEffect(() => {
     setInApp(isInAppBrowser());
     setSpeechSupported(isSpeechRecognitionSupported());
   }, []);
+
+  const handleLoginLinkClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    setIsLoginOpen(true);
+  };
 
   const handlePlayGreeting = () => {
     setHasPlayedIntro(true);
@@ -31,6 +43,33 @@ export const StartScreen: React.FC<StartScreenProps> = ({
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-amber-50 via-orange-50 to-amber-100/70 flex flex-col justify-between p-4 sm:p-6 md:p-8 max-w-lg mx-auto select-none">
+      {/* Top bar: Activity Summary on left, Login Link / User Profile Popover on right */}
+      <div className="flex justify-between items-center min-h-[36px] mb-1">
+        <button
+          type="button"
+          onClick={onOpenSummary}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/90 hover:bg-amber-100 text-amber-800 text-xs font-bold border border-amber-200 shadow-xs transition-colors cursor-pointer"
+        >
+          <BarChart3 className="w-3.5 h-3.5 text-orange-500" />
+          <span>활동 요약</span>
+        </button>
+
+        {authLoading ? (
+          <div className="w-9 h-9 rounded-full bg-amber-100/80 animate-pulse" />
+        ) : isAuthenticated ? (
+          <UserProfilePopover onOpenSummary={onOpenSummary} />
+        ) : (
+          <a
+            href="#login"
+            onClick={handleLoginLinkClick}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/90 hover:bg-amber-100 text-amber-800 text-xs font-bold border border-amber-200 shadow-xs transition-colors"
+          >
+            <LogIn className="w-3.5 h-3.5 text-orange-500" />
+            <span>로그인</span>
+          </a>
+        )}
+      </div>
+
       {/* Warnings & In-App Alerts if needed */}
       <div className="space-y-2 mb-2">
         {inApp && (
@@ -162,6 +201,11 @@ export const StartScreen: React.FC<StartScreenProps> = ({
           </span>
         </div>
       </footer>
+
+      <LoginModal
+        isOpen={isLoginOpen}
+        onClose={() => setIsLoginOpen(false)}
+      />
     </div>
   );
 };

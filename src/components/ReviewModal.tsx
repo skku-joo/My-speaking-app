@@ -3,6 +3,7 @@ import { DIALOGUE_DATA } from '../data/dialogue';
 import { speechService } from '../utils/speech';
 import { Volume2, X, Sparkles, BookOpen } from 'lucide-react';
 import { CharacterAvatar } from './CharacterAvatar';
+import { useActivity } from '../contexts/ActivityContext';
 
 interface ReviewModalProps {
   isOpen: boolean;
@@ -16,11 +17,13 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
   onStartPractice,
 }) => {
   const [playingId, setPlayingId] = React.useState<number | null>(null);
+  const { recordListen } = useActivity();
 
   if (!isOpen) return null;
 
   const handlePlay = (id: number, text: string) => {
     setPlayingId(id);
+    recordListen();
     speechService.speak(text, 0.85, () => {
       setPlayingId(null);
     });
